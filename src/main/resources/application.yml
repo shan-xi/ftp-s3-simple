@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: ftp-s3-simple
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/transferdb}
+    username: ${DB_USERNAME:transfer}
+    password: ${DB_PASSWORD:transfer}
+  flyway:
+    enabled: true
+server:
+  port: ${SERVER_PORT:8080}
+transfer:
+  ftp:
+    host: ${FTP_HOST:localhost}
+    port: ${FTP_PORT:2121}
+    username: ${FTP_USERNAME:testuser}
+    password: ${FTP_PASSWORD:testpass123}
+    directory: ${FTP_DIRECTORY:/outgoing}
+    scan-delay-ms: ${FTP_SCAN_DELAY_MS:30000}
+  s3:
+    region: ${AWS_REGION:ap-southeast-1}
+    bucket: ${S3_BUCKET:replace-with-your-bucket}
+    prefix: ${S3_PREFIX:ftp-imports/}
+    temp-directory: ${java.io.tmpdir}/ftp-s3-transfer
