@@ -2,27 +2,78 @@ services:
   postgres:
     image: postgres:17
     environment:
-      POSTGRES_DB: transferdb
-      POSTGRES_USER: transfer
-      POSTGRES_PASSWORD: transfer
-    ports: [ "5433:5432" ]
-    volumes: [ "transfer-db:/var/lib/postgresql/data" ]
+      POSTGRES_DB: ${POSTGRES_DB:-transferdb}
+      POSTGRES_USER: ${DB_USERNAME:-transfer}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-transfer}
+    ports:
+      - "5433:5432"
+    volumes:
+      - transfer-db:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U transfer -d transferdb" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-transfer} -d ${POSTGRES_DB:-transferdb}" ]
       interval: 5s
       timeout: 3s
       retries: 20
+    restart: unless-stopped
+    networks:
+      - transfer-net
+
   ftp:
     image: fauria/vsftpd
     environment:
-      FTP_USER: testuser
-      FTP_PASS: testpass123
-      PASV_ADDRESS: 127.0.0.1
+      FTP_USER: ${FTP_USERNAME:-testuser}
+      FTP_PASS: ${FTP_PASSWORD:-testpass123}
+      PASV_ADDRESS: 172.28.0.3
       PASV_MIN_PORT: 21100
       PASV_MAX_PORT: 21110
       LOCAL_UMASK: "022"
-    ports: [ "2121:21", "21100-21110:21100-21110" ]
-    volumes: [ "./ftp-data:/home/vsftpd" ]
+    ports:
+      - "2121:21"
+      - "21100-21110:21100-21110"
+    volumes:
+      - ./ftp-data:/home/vsftpd
     restart: unless-stopped
+    networks:
+      transfer-net:
+        ipv4_address: 172.28.0.3
+
+  app:
+    build: ../ftp-s3-simple
+    env_file:
+      - ../ftp-s3-simple/.env
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-transferdb}
+      DB_USERNAME: ${DB_USERNAME:-transfer}
+      DB_PASSWORD: ${DB_PASSWORD:-transfer}
+      FTP_HOST: ftp
+      FTP_PORT: 21
+      FTP_USERNAME: ${FTP_USERNAME:-testuser}
+      FTP_PASSWORD: ${FTP_PASSWORD:-testpass123}
+      FTP_DIRECTORY: ${FTP_DIRECTORY:-/outgoing}
+      AWS_PROFILE: ${AWS_PROFILE:-default}
+      AWS_SHARED_CREDENTIALS_FILE: /home/appuser/.aws/credentials
+      AWS_CONFIG_FILE: /home/appuser/.aws/config
+      TRANSFER_TEMP_DIRECTORY: /var/tmp/ftp-s3-transfer
+    volumes:
+      - ${HOME}/.aws:/home/appuser/.aws:ro
+      - transfer-temp:/var/tmp/ftp-s3-transfer
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ftp:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - transfer-net
+
 volumes:
   transfer-db:
+  transfer-temp:
+
+networks:
+  transfer-net:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

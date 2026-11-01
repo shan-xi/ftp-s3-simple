@@ -17,8 +17,13 @@ transfer:
     password: ${FTP_PASSWORD:testpass123}
     directory: ${FTP_DIRECTORY:/outgoing}
     scan-delay-ms: ${FTP_SCAN_DELAY_MS:30000}
+    connect-timeout-ms: ${FTP_CONNECT_TIMEOUT_MS:10000}
+    data-timeout-ms: ${FTP_DATA_TIMEOUT_MS:120000}
+  retry:
+    max-retries: ${TRANSFER_MAX_RETRIES:5}
+    stale-processing-minutes: ${TRANSFER_STALE_PROCESSING_MINUTES:60}
   s3:
     region: ${AWS_REGION:ap-southeast-1}
     bucket: ${S3_BUCKET:replace-with-your-bucket}
     prefix: ${S3_PREFIX:ftp-imports/}
-    temp-directory: ${java.io.tmpdir}/ftp-s3-transfer
+    temp-directory: ${TRANSFER_TEMP_DIRECTORY:${java.io.tmpdir}/ftp-s3-transfer}

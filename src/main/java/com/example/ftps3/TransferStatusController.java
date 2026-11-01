@@ -22,6 +22,6 @@ public class TransferStatusController {
 
     @GetMapping("/api/transfers")
     public List<Map<String, Object>> transfers() {
-        return jdbc.queryForList("SELECT id,source_path,source_size,s3_key,status,retry_count,last_error,created_at,updated_at FROM transfer_job ORDER BY id DESC LIMIT 100");
+        return jdbc.queryForList("SELECT id,source_path,source_size,s3_key,status,retry_count,checksum_sha256,last_error,next_attempt_at,created_at,updated_at FROM transfer_job ORDER BY id DESC LIMIT 100");
     }
 }
